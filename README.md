@@ -2,18 +2,21 @@
 
 A personal Android app to follow and track an acid-reflux lifestyle routine: daily habits, meals, sleep, exercise, rule breaks and insights. All data stays on the phone.
 
+The whole app has a new glassy, colorful design (gradient background, frosted glass cards) that adapts to light and dark mode.
+
 ## What's inside
 
 | Tab / page | What it does |
 |---|---|
-| **Today** | Date switcher (back-fill past days), habit checklist, symptom score, meal & drink log, workouts & walks, last night's sleep, rule breaks for the day |
+| **Today** | Date switcher (back-fill past days), habit checklist (auto-ticks **Meditated today** at 5+ min), symptom score, meal & drink log, workouts & walks, last night's sleep, meditation minutes, **Rule breaks** shortcut for the day |
 | **Routine** | Full daily schedule (5:45 am → 10 pm) with details, weekly exercise plan, how to start |
 | **Diet** | Reflux-friendly foods for each meal, foods to limit, **add your own healthy foods** (they appear as quick picks when logging meals) |
 | **Exercise** | Today's planned session, this week's progress, rules for exercising with reflux, step-by-step instructions for every dumbbell exercise and yoga stretch |
 | **Workout session** | Guided routine: tick off sets, note dumbbell weights, 60 s rest timer, hold timers for stretches (with a beep), warns you if you ate in the last 2 hours, saves to your log |
 | **Sleep** | **Automatic bedtime/wake detection from your phone's screen on/off times**, 14-night chart, averages, manual edit for any night |
-| **Breaks** | Every time a rule was broken — auto-detected from your logs plus ones you add yourself — with counts per rule and per day |
-| **Insights** | Key insights in plain language, possible triggers (symptoms on/after rule-break days vs. other days), habit %, sleep, symptoms, exercise, food tags; **export CSV + JSON** |
+| **Meditate** (bottom tab) | Choose a duration (3–45 min presets or custom) and a sound: 8 built-in calming sounds generated on the phone (Rain, Ocean waves, Singing bowls, Om drone, Brown noise, Wind chimes, Forest, Deep calm hum/binaural — best with headphones) or **your own music files**. Optional breathing guide animation and end bell. Keeps playing with the screen off (media notification with pause/stop). Every session of 30 s or more is logged automatically; shows today's minutes, streak, 14-day chart and history |
+| **Breaks** | Opened from the **Rule breaks** shortcut on Today (no longer a bottom tab). Every time a rule was broken — auto-detected from your logs plus ones you add yourself — with counts per rule and per day |
+| **Insights** | Key insights in plain language, possible triggers (symptoms on/after rule-break days vs. other days), habit %, sleep, symptoms, exercise, food tags, a **meditation** section (minutes, days, streak, symptoms on meditation vs. other days); **export CSV + JSON** (CSV has a `meditation_min` column, JSON includes `meditations`) |
 | **Guide** | Why each rule matters, sleep setup, red-flag symptoms |
 
 ### Rules detected automatically
@@ -23,6 +26,11 @@ Detection is driven by what you log: pick the meal type, portion, and tags (Frie
 
 ### How sleep tracking works
 On first use, tap **Allow usage access** and enable RefluxCare in *Settings → Usage access*. Each time you open the app it reads screen on/off events (Android `UsageStatsManager`) for the last 10 nights, finds the longest screen-off period between 7 pm and 1 pm (brief checks under 10 minutes are merged), and records that as bedtime → wake time. Edit any night manually on the Sleep page; manual edits are never overwritten. Android only keeps these events for about a week, so open the app at least every few days.
+
+### Permissions
+- **Usage access** (sleep detection): granted in *Settings → Usage access*.
+- **Notifications** (Android 13+): asked when you start your first meditation, for the playback notification.
+- **Audio files** you add to Meditate are only read, never copied or uploaded.
 
 ## Build it
 
@@ -50,6 +58,7 @@ app/src/main/java/com/refluxcare/app/
   domain/RuleEngine.kt    Auto-detects rule breaks for a day
   domain/SleepTracker.kt  Sleep detection from screen on/off events
   domain/Insights.kt      Insight and trigger calculations
+  meditation/             Sound synthesis, custom music, timer + background playback service
   ui/                     Theme, shared components, navigation
   ui/screens/             All pages and dialogs
 ```

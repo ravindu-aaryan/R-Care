@@ -82,8 +82,10 @@ fun InsightsScreen(onOpen: (String) -> Unit) {
     val habits by remember(range) { repo.dao.habitsBetween(f, t) }.collectAsState(initial = emptyList())
     val breaks by remember(range) { repo.dao.breaksBetween(f, t) }.collectAsState(initial = emptyList())
 
-    val data = remember(range, meals, sleeps, workouts, symptoms, habits, breaks) {
-        InsightsCalc.compute(from, to, meals, sleeps, workouts, symptoms, habits, breaks)
+    val meditations by remember(range) { repo.dao.meditationsBetween(f, t) }.collectAsState(initial = emptyList())
+
+    val data = remember(range, meals, sleeps, workouts, symptoms, habits, breaks, meditations) {
+        InsightsCalc.compute(from, to, meals, sleeps, workouts, symptoms, habits, breaks, meditations)
     }
     val labels = data.days.map { it.dayOfMonth.toString() }
 
@@ -156,6 +158,24 @@ fun InsightsScreen(onOpen: (String) -> Unit) {
                 onClick = { onOpen("sleep") },
                 border = BorderStroke(1.dp, Glass.border)
             ) { Text("Open sleep page") }
+        }
+
+        GlassCard {
+            InsHeader("🧘", "Meditation")
+            StatGrid(
+                "Total minutes" to "${data.totalMeditationMin}",
+                "Days" to "${data.meditationDays}/${data.days.size}",
+                "Streak" to "${data.meditationStreak}"
+            )
+            BarChart(values = data.meditationMin, labels = labels, maxValue = maxOf(20f, data.meditationMin.filterNotNull().maxOrNull() ?: 20f), color = Glass.Violet500, target = 10f)
+            val withM = data.symptomsWithMeditation
+            val withoutM = data.symptomsWithoutMeditation
+            if (withM != null && withoutM != null) {
+                Text(
+                    "Symptoms averaged ${"%.1f".format(withM)} on meditation days vs ${"%.1f".format(withoutM)} on other days.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
 
         GlassCard {

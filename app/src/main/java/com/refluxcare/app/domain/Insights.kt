@@ -1,6 +1,7 @@
 package com.refluxcare.app.domain
 
 import com.refluxcare.app.data.HabitCheck
+import com.refluxcare.app.data.MeditationSession
 import com.refluxcare.app.data.MealLog
 import com.refluxcare.app.data.RuleBreak
 import com.refluxcare.app.data.SleepRecord
@@ -40,7 +41,13 @@ data class InsightData(
     val plannedYoga: Int,
     val steps: Int,
     val tagCounts: List<Pair<String, Int>>,
-    val messages: List<String>
+    val messages: List<String>,
+    val meditationMin: List<Float?> = emptyList(),
+    val totalMeditationMin: Int = 0,
+    val meditationDays: Int = 0,
+    val meditationStreak: Int = 0,
+    val symptomsWithMeditation: Float? = null,
+    val symptomsWithoutMeditation: Float? = null
 )
 
 object InsightsCalc {
@@ -53,7 +60,8 @@ object InsightsCalc {
         workouts: List<WorkoutLog>,
         symptoms: List<SymptomLog>,
         habits: List<HabitCheck>,
-        breaks: List<RuleBreak>
+        breaks: List<RuleBreak>,
+        meditations: List<MeditationSession> = emptyList()
     ): InsightData {
         val today = T.today()
         val days = generateSequence(from) { it.plusDays(1) }.takeWhile { !it.isAfter(to) }.toList()
@@ -131,6 +139,24 @@ object InsightsCalc {
         val tagCounts = meals.flatMap { it.tagList() }.groupBy { it }
             .map { Tags.label(it.key) to it.value.size }.sortedByDescending { it.second }
 
+        // Meditation
+        val medSecByDate = meditations.groupBy { it.date }.mapValues { e -> e.value.sumOf { it.actualSec } }
+        val meditationMin = days.mapIndexed { i, d ->
+            if (d.isAfter(today)) null else (medSecByDate[keys[i]] ?: 0) / 60f
+        }
+        val totalMeditationMin = keys.sumOf { medSecByDate[it] ?: 0 } / 60
+        val meditationDays = keys.count { (medSecByDate[it] ?: 0) >= 60 }
+        var meditationStreak = 0
+        run {
+            var idx = keys.lastIndex
+            if (idx >= 0 && (medSecByDate[keys[idx]] ?: 0) < 60) idx--
+            while (idx >= 0 && (medSecByDate[keys[idx]] ?: 0) >= 60) { meditationStreak++; idx-- }
+        }
+        val withMed = symInRange.filter { (medSecByDate[it.date] ?: 0) >= 300 }.map { it.severity }
+        val withoutMed = symInRange.filter { (medSecByDate[it.date] ?: 0) < 300 }.map { it.severity }
+        val symptomsWithMeditation = if (withMed.size >= 2 && withoutMed.size >= 2) withMed.average().toFloat() else null
+        val symptomsWithoutMeditation = if (withMed.size >= 2 && withoutMed.size >= 2) withoutMed.average().toFloat() else null
+
         // Plain-language messages
         val msgs = mutableListOf<String>()
         if (avgSleepMin != null) {
@@ -152,6 +178,14 @@ object InsightsCalc {
         if (planned > 0) msgs += "Workouts: ${dumbbell + yoga} done of $planned planned; $walks walks logged."
         if (avgSymptom != null) {
             msgs += "Average symptom score ${"%.1f".format(avgSymptom)} / 3 — ${symInRange.count { it.severity == 0 }} symptom-free days."
+        }
+
+        if (totalMeditationMin > 0 || meditationDays > 0) {
+            msgs += "You meditated on $meditationDays of ${days.size} days ($totalMeditationMin min total)."
+        }
+        if (symptomsWithMeditation != null && symptomsWithoutMeditation != null) {
+            msgs += "Symptoms averaged ${"%.1f".format(symptomsWithMeditation)} on meditation days vs " +
+                "${"%.1f".format(symptomsWithoutMeditation)} on other days."
         }
 
         return InsightData(
@@ -181,7 +215,13 @@ object InsightsCalc {
             plannedYoga = plannedYoga,
             steps = steps,
             tagCounts = tagCounts,
-            messages = msgs
+            messages = msgs,
+            meditationMin = meditationMin,
+            totalMeditationMin = totalMeditationMin,
+            meditationDays = meditationDays,
+            meditationStreak = meditationStreak,
+            symptomsWithMeditation = symptomsWithMeditation,
+            symptomsWithoutMeditation = symptomsWithoutMeditation
         )
     }
 }

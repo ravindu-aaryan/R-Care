@@ -73,6 +73,7 @@ fun TodayScreen(onOpen: (String) -> Unit) {
     val symptom by remember(dateKey) { repo.dao.symptomFor(dateKey) }.collectAsState(initial = null)
     val habits by remember(dateKey) { repo.dao.habitsFor(dateKey) }.collectAsState(initial = emptyList())
     val breaks by remember(dateKey) { repo.dao.breaksBetween(dateKey, dateKey) }.collectAsState(initial = emptyList())
+    val meditations by remember(dateKey) { repo.dao.meditationsFor(dateKey) }.collectAsState(initial = emptyList())
     val customFoods by remember { repo.dao.customFoods() }.collectAsState(initial = emptyList())
 
     var editingMeal by remember { mutableStateOf<MealLog?>(null) }
@@ -83,6 +84,13 @@ fun TodayScreen(onOpen: (String) -> Unit) {
     val done = habits.filter { it.done }.map { it.habitId }.toSet()
     val planned = Content.plannedWorkout(day.dayOfWeek)
     val hasPerm = SleepTracker.hasPermission(ctx)
+    val medSeconds = meditations.sumOf { it.actualSec }
+    val medDone = "meditate" in done
+
+    // Auto-tick the meditation habit at 5+ minutes; never auto-uncheck.
+    LaunchedEffect(dateKey, medSeconds) {
+        if (medSeconds >= 300 && !medDone) repo.setHabit(dateKey, "meditate", true)
+    }
 
     Page(
         title = if (isToday) "Today" else T.day(day),
@@ -216,6 +224,15 @@ fun TodayScreen(onOpen: (String) -> Unit) {
                     }
                 }
             }
+        }
+
+        // Meditation
+        GlassSection(emoji = "🧘", title = "Meditation") {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Stat("Minutes", (medSeconds / 60).toString())
+                Stat("Sessions", meditations.size.toString())
+            }
+            GradientButton("Meditate now", onClick = { onOpen("meditate") })
         }
 
         // Meals

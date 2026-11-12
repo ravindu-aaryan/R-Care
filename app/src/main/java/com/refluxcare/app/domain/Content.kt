@@ -142,6 +142,7 @@ object Content {
         Habit("dinner_early", "Light dinner by 7:00 pm", "3+ hours before sleep"),
         Habit("dinner_walk", "Walk after dinner", "15–20 minutes"),
         Habit("no_trigger", "No fried food, pickle or alcohol", "Includes fizzy drinks"),
+        Habit("meditate", "Meditated today (5+ min)", "Use the Meditate tab — it logs automatically"),
         Habit("breathing", "5 minutes belly breathing", "Strengthens the diaphragm"),
         Habit("sleep_setup", "Left side, head of bed raised", "Asleep by 9:30–10:00 pm")
     )
@@ -230,6 +231,7 @@ object Content {
         )),
         RoutineItem("8:30 – 9:30 pm", "Wind down", listOf(
             "Belly breathing for 5 minutes.",
+            "10 minutes of meditation (Meditate tab) — calms the mind before sleep.",
             "Screens off or dimmed; no food after dinner. Water in sips is fine."
         )),
         RoutineItem("9:30 – 10:00 pm", "Sleep", listOf(

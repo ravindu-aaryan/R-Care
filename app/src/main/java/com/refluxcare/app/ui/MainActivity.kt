@@ -13,11 +13,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -37,6 +37,7 @@ import com.refluxcare.app.ui.screens.DietScreen
 import com.refluxcare.app.ui.screens.ExerciseScreen
 import com.refluxcare.app.ui.screens.GuideScreen
 import com.refluxcare.app.ui.screens.InsightsScreen
+import com.refluxcare.app.ui.screens.MeditationScreen
 import com.refluxcare.app.ui.screens.RoutineScreen
 import com.refluxcare.app.ui.screens.RuleBreaksScreen
 import com.refluxcare.app.ui.screens.SleepScreen
@@ -65,7 +66,7 @@ private val tabs = listOf(
     Tab("today", "Today", Icons.Filled.Home),
     Tab("diet", "Diet", Icons.Filled.Favorite),
     Tab("exercise", "Exercise", Icons.Filled.PlayArrow),
-    Tab("rules", "Breaks", Icons.Filled.Warning),
+    Tab("meditate", "Meditate", Icons.Filled.Face),
     Tab("insights", "Insights", Icons.Filled.Star)
 )
 
@@ -119,8 +120,9 @@ fun AppRoot() {
             composable("today") { TodayScreen(onOpen = go) }
             composable("diet") { DietScreen() }
             composable("exercise") { ExerciseScreen(onStart = { type -> go("workout/$type") }) }
-            composable("rules") { RuleBreaksScreen() }
+            composable("meditate") { MeditationScreen() }
             composable("insights") { InsightsScreen(onOpen = go) }
+            composable("rules") { RuleBreaksScreen(onBack = { nav.popBackStack() }) }
             composable("routine") { RoutineScreen(onBack = { nav.popBackStack() }) }
             composable("sleep") { SleepScreen(onBack = { nav.popBackStack() }) }
             composable("guide") { GuideScreen(onBack = { nav.popBackStack() }) }
