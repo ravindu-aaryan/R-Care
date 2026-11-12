@@ -2,7 +2,13 @@ package com.refluxcare.app.ui.screens
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -18,9 +24,12 @@ import com.refluxcare.app.domain.Content
 import com.refluxcare.app.domain.SleepTracker
 import com.refluxcare.app.ui.BarChart
 import com.refluxcare.app.ui.Bullet
+import com.refluxcare.app.ui.Glass
+import com.refluxcare.app.ui.GlassCard
+import com.refluxcare.app.ui.GradientButton
+import com.refluxcare.app.ui.IconBadge
 import com.refluxcare.app.ui.Page
 import com.refluxcare.app.ui.Pill
-import com.refluxcare.app.ui.SectionCard
 import com.refluxcare.app.ui.Stat
 import com.refluxcare.app.ui.pickTime
 import com.refluxcare.app.ui.repo
@@ -42,6 +51,14 @@ private fun editSleep(context: Context, wakeDay: LocalDate, existing: SleepRecor
 }
 
 @Composable
+private fun SleepHeader(emoji: String, title: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        IconBadge(emoji)
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
 fun SleepScreen(onBack: () -> Unit) {
     val repo = repo()
     val ctx = LocalContext.current
@@ -56,20 +73,43 @@ fun SleepScreen(onBack: () -> Unit) {
     val last7 = records.filter { it.date >= T.key(today.minusDays(6)) }
 
     Page(title = "Sleep", subtitle = "Target: asleep 9:30–10:00 pm · up 5:45–6:00 am", onBack = onBack) {
-        SectionCard(title = "Automatic tracking") {
+        val lastRec = days.reversed().firstNotNullOfOrNull { byDate[T.key(it)] }
+        GlassCard(contentPadding = 20.dp) {
+            SleepHeader("🌙", "Last night")
+            if (lastRec != null) {
+                Text(
+                    T.duration((lastRec.wakeTime - lastRec.sleepStart) / T.MINUTE),
+                    fontSize = 44.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Text(
+                    "${T.time(lastRec.sleepStart)} → ${T.time(lastRec.wakeTime)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text("No data yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        GlassCard {
+            SleepHeader("😴", "Automatic tracking")
             if (hasPerm) {
                 Text("✓ Usage access is on. Bedtime = when your screen went off for the night; wake = when you first turned it on in the morning.")
             } else {
                 Text("Turn on usage access for RefluxCare so the app can read when your screen turns off and on. Nothing leaves your phone.")
-                Button(onClick = { ctx.startActivity(SleepTracker.permissionIntent()) }) { Text("Allow usage access") }
+                GradientButton(text = "Allow usage access", onClick = { ctx.startActivity(SleepTracker.permissionIntent()) })
             }
-            OutlinedButton(onClick = {
-                scope.launch {
-                    val n = repo.syncSleep(ctx)
-                    for (i in 0..9) repo.reevaluate(T.key(today.minusDays(i.toLong())))
-                    Toast.makeText(ctx, if (n > 0) "Updated $n night(s)" else "No new sleep found", Toast.LENGTH_SHORT).show()
-                }
-            }) { Text("Detect now") }
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        val n = repo.syncSleep(ctx)
+                        for (i in 0..9) repo.reevaluate(T.key(today.minusDays(i.toLong())))
+                        Toast.makeText(ctx, if (n > 0) "Updated $n night(s)" else "No new sleep found", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                border = BorderStroke(1.dp, Glass.border)
+            ) { Text("Detect now") }
             Text(
                 "Short checks at night (under 10 min) are ignored. If you watch videos in bed or the phone was used " +
                     "by someone else, edit the night manually — manual edits are never overwritten.",
@@ -78,7 +118,8 @@ fun SleepScreen(onBack: () -> Unit) {
             )
         }
 
-        SectionCard(title = "Last 7 nights") {
+        GlassCard {
+            SleepHeader("📊", "Last 7 nights")
             if (last7.isEmpty()) {
                 Text("No data yet.")
             } else {
@@ -91,20 +132,31 @@ fun SleepScreen(onBack: () -> Unit) {
                     Stat("Avg wake", T.fmtMinutesOfDay(avgWake), Modifier.weight(1f))
                 }
             }
-            Text("Hours slept (dashed line = 7.5 h)", style = MaterialTheme.typography.bodySmall)
+            Text("Hours slept (dashed line = 7.5 h)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             BarChart(
                 values = days.map { d -> byDate[T.key(d)]?.let { (it.wakeTime - it.sleepStart) / 3_600_000f } },
                 labels = days.map { it.dayOfMonth.toString() },
                 maxValue = 10f,
+                color = Glass.Violet500,
                 target = 7.5f
             )
         }
 
-        SectionCard(title = "Nights") {
+        GlassCard {
+            SleepHeader("🌙", "Nights")
             days.reversed().forEach { d ->
                 val key = T.key(d)
                 val r = byDate[key]
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                val rowShape = RoundedCornerShape(16.dp)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(rowShape)
+                        .background(Glass.surface)
+                        .border(1.dp, Glass.border, rowShape)
+                        .padding(start = 12.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Column(Modifier.weight(1f)) {
                         Text("Night → ${T.day(d)}", fontWeight = FontWeight.SemiBold)
                         if (r != null) {
@@ -115,7 +167,7 @@ fun SleepScreen(onBack: () -> Unit) {
                             )
                             Pill(if (r.source == "auto") "Auto" else "Manual")
                         } else {
-                            Text("Not recorded", style = MaterialTheme.typography.bodySmall)
+                            Text("Not recorded", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     IconButton(onClick = {
@@ -129,11 +181,11 @@ fun SleepScreen(onBack: () -> Unit) {
                         }
                     }
                 }
-                HorizontalDivider()
             }
         }
 
-        SectionCard(title = "Sleep setup for reflux") {
+        GlassCard {
+            SleepHeader("😴", "Sleep setup for reflux")
             Bullet("Raise the head of the bed 15–20 cm with blocks or a wedge.")
             Bullet("Sleep on your left side.")
             Bullet("Last food at least 3 hours before bed.")

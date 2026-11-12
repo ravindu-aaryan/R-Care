@@ -23,7 +23,9 @@ import com.refluxcare.app.domain.Portions
 import com.refluxcare.app.domain.RuleIds
 import com.refluxcare.app.domain.Tags
 import com.refluxcare.app.domain.WorkoutTypes
+import com.refluxcare.app.ui.GlassChip
 import com.refluxcare.app.ui.pickTime
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.refluxcare.app.util.T
 import java.time.LocalTime
 
@@ -61,6 +63,8 @@ fun MealDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        shape = RoundedCornerShape(28.dp),
         title = { Text(if (existing == null) "Log meal / drink" else "Edit meal") },
         text = {
             Column(
@@ -70,13 +74,13 @@ fun MealDialog(
                 FieldLabel("Meal")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     MealTypes.all.forEach { (id, label) ->
-                        FilterChip(
+                        GlassChip(
+                            text = label,
                             selected = type == id,
                             onClick = {
                                 type = id
                                 if (existing == null && !isToday) time = T.millis(day, MealTypes.defaultHour(id), 0)
-                            },
-                            label = { Text(label) }
+                            }
                         )
                     }
                 }
@@ -98,9 +102,10 @@ fun MealDialog(
                     Text("Tap to add:", style = MaterialTheme.typography.bodySmall)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         suggestions.forEach { s ->
-                            SuggestionChip(
-                                onClick = { items = if (items.isBlank()) s else "${items.trimEnd().trimEnd(',')}, $s" },
-                                label = { Text(s) }
+                            GlassChip(
+                                text = s,
+                                selected = false,
+                                onClick = { items = if (items.isBlank()) s else "${items.trimEnd().trimEnd(',')}, $s" }
                             )
                         }
                     }
@@ -109,17 +114,17 @@ fun MealDialog(
                 FieldLabel("Portion")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Portions.all.forEach { (id, label) ->
-                        FilterChip(selected = portion == id, onClick = { portion = id }, label = { Text(label) })
+                        GlassChip(text = label, selected = portion == id, onClick = { portion = id })
                     }
                 }
 
                 FieldLabel("Tags (used to detect rule breaks)")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Tags.all.forEach { (id, label) ->
-                        FilterChip(
+                        GlassChip(
+                            text = label,
                             selected = id in tags,
-                            onClick = { tags = if (id in tags) tags - id else tags + id },
-                            label = { Text(label) }
+                            onClick = { tags = if (id in tags) tags - id else tags + id }
                         )
                     }
                 }
@@ -168,6 +173,8 @@ fun WalkDialog(date: String, onDismiss: () -> Unit, onSave: (WorkoutLog) -> Unit
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        shape = RoundedCornerShape(28.dp),
         title = { Text("Log walk") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -228,6 +235,8 @@ fun RuleBreakDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        shape = RoundedCornerShape(28.dp),
         title = { Text("Log a rule break") },
         text = {
             Column(
@@ -237,13 +246,13 @@ fun RuleBreakDialog(
                 FieldLabel("Day")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     dates.forEach { d ->
-                        FilterChip(selected = date == d, onClick = { date = d }, label = { Text(T.day(T.parse(d))) })
+                        GlassChip(text = T.day(T.parse(d)), selected = date == d, onClick = { date = d })
                     }
                 }
                 FieldLabel("Which rule?")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Content.rules.forEach { r ->
-                        FilterChip(selected = ruleId == r.id, onClick = { ruleId = r.id }, label = { Text(r.title) })
+                        GlassChip(text = r.title, selected = ruleId == r.id, onClick = { ruleId = r.id })
                     }
                 }
                 OutlinedTextField(
@@ -274,6 +283,8 @@ fun AddFoodDialog(onDismiss: () -> Unit, onSave: (CustomFood) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        shape = RoundedCornerShape(28.dp),
         title = { Text("Add healthy food") },
         text = {
             Column(
@@ -289,7 +300,7 @@ fun AddFoodDialog(onDismiss: () -> Unit, onSave: (CustomFood) -> Unit) {
                 FieldLabel("Best for")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     options.forEach { (id, label) ->
-                        FilterChip(selected = type == id, onClick = { type = id }, label = { Text(label) })
+                        GlassChip(text = label, selected = type == id, onClick = { type = id })
                     }
                 }
                 OutlinedTextField(

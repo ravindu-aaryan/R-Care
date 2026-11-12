@@ -3,7 +3,28 @@
 package com.refluxcare.app.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
+import com.refluxcare.app.ui.Glass
+import com.refluxcare.app.ui.GlassCard
+import com.refluxcare.app.ui.GlassChip
+import com.refluxcare.app.ui.GradientButton
+import com.refluxcare.app.ui.IconBadge
+import com.refluxcare.app.ui.Stat
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -76,18 +97,33 @@ fun TodayScreen(onOpen: (String) -> Unit) {
             }
         }
     ) {
-        // Shortcuts to the info pages
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilledTonalButton(onClick = { onOpen("routine") }, modifier = Modifier.weight(1f)) { Text("Routine") }
-            FilledTonalButton(onClick = { onOpen("sleep") }, modifier = Modifier.weight(1f)) { Text("Sleep") }
-            FilledTonalButton(onClick = { onOpen("guide") }, modifier = Modifier.weight(1f)) { Text("Guide") }
-        }
-
-        // Summary
-        SectionCard(title = "Summary") {
-            val pct = done.size.toFloat() / Content.habits.size
-            Text("Habits: ${done.size} / ${Content.habits.size}")
-            LinearProgressIndicator(progress = { pct }, modifier = Modifier.fillMaxWidth())
+        // Hero summary
+        val pct = if (Content.habits.isEmpty()) 0f else done.size.toFloat() / Content.habits.size
+        GlassCard {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconBadge("✨")
+                Text("Summary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                ProgressRing(pct, Modifier.size(96.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        T.day(day),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Text(
+                        "Habits: ${done.size} / ${Content.habits.size}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Stat("Breaks", breaks.size.toString())
+                        Stat("Meals", meals.size.toString())
+                        Stat("Workouts", workouts.size.toString())
+                    }
+                }
+            }
             Text(
                 if (breaks.isEmpty()) "No rule breaks ${if (isToday) "so far today" else "this day"} 👍"
                 else "${breaks.size} rule break(s) — see below",
@@ -95,8 +131,17 @@ fun TodayScreen(onOpen: (String) -> Unit) {
             )
         }
 
+        // Shortcuts to the info pages
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            GlassChip("⏰ Routine", false) { onOpen("routine") }
+            GlassChip("🌙 Sleep", false) { onOpen("sleep") }
+            GlassChip("📖 Guide", false) { onOpen("guide") }
+            GlassChip("⚠️ Rule breaks", false) { onOpen("rules") }
+        }
+
         // Sleep
-        SectionCard(
+        GlassSection(
+            emoji = "🌙",
             title = "Last night's sleep",
             action = { TextButton(onClick = { onOpen("sleep") }) { Text("Details") } }
         ) {
@@ -113,25 +158,26 @@ fun TodayScreen(onOpen: (String) -> Unit) {
                 if (!hasPerm) {
                     Text(
                         "Allow usage access so the app can detect sleep from when your screen turns off and on.",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Button(onClick = { ctx.startActivity(SleepTracker.permissionIntent()) }) { Text("Allow usage access") }
+                    GradientButton("Allow usage access", onClick = { ctx.startActivity(SleepTracker.permissionIntent()) })
                 }
             }
         }
 
         // Symptoms
-        SectionCard(title = "Reflux symptoms") {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        GlassSection(emoji = "🔥", title = "Reflux symptoms") {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 symptomLabels.forEachIndexed { i, label ->
-                    FilterChip(
+                    GlassChip(
+                        text = label,
                         selected = symptom?.severity == i,
                         onClick = {
                             scope.launch {
                                 repo.setSymptom(SymptomLog(dateKey, i, symptom?.night ?: false, symptom?.note ?: ""))
                             }
-                        },
-                        label = { Text(label) }
+                        }
                     )
                 }
             }
@@ -149,18 +195,23 @@ fun TodayScreen(onOpen: (String) -> Unit) {
         }
 
         // Habits
-        SectionCard(title = "Daily habits") {
+        GlassSection(emoji = "✅", title = "Daily habits") {
             Content.habits.forEach { h ->
                 val checked = h.id in done
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clickable { scope.launch { repo.setHabit(dateKey, h.id, !checked) } },
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (checked) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else Color.Transparent
+                        )
+                        .clickable { scope.launch { repo.setHabit(dateKey, h.id, !checked) } }
+                        .padding(end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(checked = checked, onCheckedChange = { c -> scope.launch { repo.setHabit(dateKey, h.id, c) } })
                     Column(Modifier.weight(1f)) {
-                        Text(h.title)
+                        Text(h.title, fontWeight = FontWeight.Medium)
                         Text(h.hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -168,7 +219,8 @@ fun TodayScreen(onOpen: (String) -> Unit) {
         }
 
         // Meals
-        SectionCard(
+        GlassSection(
+            emoji = "🍽️",
             title = "Meals & drinks",
             action = {
                 TextButton(onClick = { editingMeal = null; showMeal = true }) {
@@ -178,12 +230,14 @@ fun TodayScreen(onOpen: (String) -> Unit) {
                 }
             }
         ) {
-            if (meals.isEmpty()) Text("Nothing logged yet. Log every meal and drink, including tea.")
+            if (meals.isEmpty()) {
+                Text(
+                    "Nothing logged yet. Log every meal and drink, including tea.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             meals.forEach { m ->
-                Row(
-                    Modifier.fillMaxWidth().clickable { editingMeal = m; showMeal = true },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Tile(onClick = { editingMeal = m; showMeal = true }) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text("${T.time(m.time)} · ${MealTypes.label(m.mealType)}", fontWeight = FontWeight.SemiBold)
                         Text(m.items)
@@ -198,15 +252,19 @@ fun TodayScreen(onOpen: (String) -> Unit) {
                         Icon(Icons.Filled.Delete, contentDescription = "Delete meal")
                     }
                 }
-                HorizontalDivider()
             }
         }
 
         // Activity
-        SectionCard(title = "Exercise & walks") {
-            if (workouts.isEmpty()) Text(planned?.let { "Planned: ${WorkoutTypes.label(it)} + evening walk" } ?: "Rest day: evening walk only")
+        GlassSection(emoji = "🏋️", title = "Exercise & walks") {
+            if (workouts.isEmpty()) {
+                Text(
+                    planned?.let { "Planned: ${WorkoutTypes.label(it)} + evening walk" } ?: "Rest day: evening walk only",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             workouts.forEach { w ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Tile {
                     Column(Modifier.weight(1f)) {
                         Text("${T.time(w.time)} · ${WorkoutTypes.label(w.type)}", fontWeight = FontWeight.SemiBold)
                         val extra = buildString {
@@ -223,20 +281,36 @@ fun TodayScreen(onOpen: (String) -> Unit) {
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onOpen("exercise") }, modifier = Modifier.weight(1f)) { Text("Start workout") }
-                OutlinedButton(onClick = { showWalk = true }, modifier = Modifier.weight(1f)) { Text("Log walk") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                GradientButton("Start workout", onClick = { onOpen("exercise") }, modifier = Modifier.weight(1f))
+                OutlinedButton(
+                    onClick = { showWalk = true },
+                    modifier = Modifier.weight(1f),
+                    border = BorderStroke(1.dp, Glass.border)
+                ) { Text("Log walk") }
             }
         }
 
         // Rule breaks
-        SectionCard(
+        GlassSection(
+            emoji = "⚠️",
             title = "Rule breaks",
             action = { TextButton(onClick = { showBreak = true }) { Text("Log one") } }
         ) {
-            if (breaks.isEmpty()) Text("None. Breaks are detected automatically from your logs, or add one yourself.")
+            if (breaks.isEmpty()) {
+                Text(
+                    "None. Breaks are detected automatically from your logs, or add one yourself.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             breaks.forEach { b ->
-                Column {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.12f))
+                        .padding(12.dp)
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(b.title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
                         Pill(if (b.source == "auto") "Auto" else "Manual")
@@ -274,6 +348,76 @@ fun TodayScreen(onOpen: (String) -> Unit) {
                     Toast.makeText(ctx, "Rule break noted", Toast.LENGTH_SHORT).show()
                 }
             }
+        )
+    }
+}
+
+@Composable
+private fun GlassSection(
+    emoji: String,
+    title: String,
+    action: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    GlassCard {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            IconBadge(emoji)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            action?.invoke()
+        }
+        content()
+    }
+}
+
+@Composable
+private fun Tile(onClick: (() -> Unit)? = null, content: @Composable RowScope.() -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    val base = Modifier
+        .fillMaxWidth()
+        .clip(shape)
+        .background(Glass.surface)
+        .border(1.dp, Glass.border, shape)
+    Row(
+        (if (onClick != null) base.clickable(onClick = onClick) else base).padding(start = 12.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content
+    )
+}
+
+@Composable
+private fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
+    val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    val colors = listOf(Glass.Teal500, Glass.Violet500, Glass.Pink400)
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val stroke = 10.dp.toPx()
+            val inset = stroke / 2f
+            val arcSize = Size(size.width - stroke, size.height - stroke)
+            val topLeft = Offset(inset, inset)
+            drawArc(track, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
+            if (progress > 0f) {
+                rotate(-90f) {
+                    drawArc(
+                        brush = Brush.sweepGradient(colors, center = center),
+                        startAngle = 0f,
+                        sweepAngle = 360f * progress.coerceIn(0f, 1f),
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(stroke, cap = StrokeCap.Round)
+                    )
+                }
+            }
+        }
+        Text(
+            "${(progress * 100).toInt()}%",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.ExtraBold
         )
     }
 }

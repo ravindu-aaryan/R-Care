@@ -72,3 +72,15 @@ data class CustomFood(
     val mealType: String, // a MealTypes id or "ANY"
     val note: String = ""
 )
+
+/** A meditation session. date = yyyy-MM-dd of start; sound = display name ("Rain", "Silence"). */
+@Entity(tableName = "meditations")
+data class MeditationSession(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val date: String,
+    val startTime: Long,
+    val plannedMin: Int,
+    val actualSec: Int,
+    val sound: String,
+    val completed: Boolean
+)

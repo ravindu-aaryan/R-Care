@@ -3,7 +3,11 @@
 package com.refluxcare.app.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -17,15 +21,18 @@ import androidx.compose.ui.unit.dp
 import com.refluxcare.app.domain.Content
 import com.refluxcare.app.ui.BarChart
 import com.refluxcare.app.ui.ExpandableCard
+import com.refluxcare.app.ui.Glass
+import com.refluxcare.app.ui.GlassCard
+import com.refluxcare.app.ui.GlassChip
+import com.refluxcare.app.ui.IconBadge
 import com.refluxcare.app.ui.Page
 import com.refluxcare.app.ui.Pill
-import com.refluxcare.app.ui.SectionCard
 import com.refluxcare.app.ui.repo
 import com.refluxcare.app.util.T
 import kotlinx.coroutines.launch
 
 @Composable
-fun RuleBreaksScreen() {
+fun RuleBreaksScreen(onBack: (() -> Unit)? = null) {
     val repo = repo()
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -41,17 +48,35 @@ fun RuleBreaksScreen() {
     Page(
         title = "Rule breaks",
         subtitle = "Every time the routine was broken",
+        onBack = onBack,
         actions = { TextButton(onClick = { showAdd = true }) { Text("Log one") } }
     ) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(7 to "7 days", 30 to "30 days", 0 to "All").forEach { (r, label) ->
-                FilterChip(selected = range == r, onClick = { range = r }, label = { Text(label) })
+                GlassChip(text = label, selected = range == r, onClick = { range = r })
             }
         }
 
-        SectionCard(title = "Summary") {
+        GlassCard(contentPadding = 20.dp) {
             val auto = breaks.count { it.source == "auto" }
-            Text("${breaks.size} rule breaks ($auto auto-detected, ${breaks.size - auto} logged by you)", fontWeight = FontWeight.Medium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                IconBadge("⚠️")
+                Text("Summary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("${breaks.size}", fontSize = 48.sp, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    "rule breaks",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+            }
+            Text(
+                "$auto auto-detected, ${breaks.size - auto} logged by you",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             if (range in 1..30) {
                 val days = (0 until range).map { today.minusDays((range - 1 - it).toLong()) }
                 val byDate = breaks.groupBy { it.date }
@@ -59,25 +84,53 @@ fun RuleBreaksScreen() {
                     values = days.map { (byDate[T.key(it)]?.size ?: 0).toFloat() },
                     labels = days.map { it.dayOfMonth.toString() },
                     maxValue = maxOf(4f, days.maxOfOrNull { (byDate[T.key(it)]?.size ?: 0).toFloat() } ?: 4f),
-                    color = MaterialTheme.colorScheme.error,
+                    color = Glass.Pink400,
                     height = 110.dp
                 )
             }
-            val counts = breaks.groupBy { it.title }.map { it.key to it.value.size }.sortedByDescending { it.second }
-            counts.take(8).forEach { (title, n) ->
-                Row {
-                    Text(title, modifier = Modifier.weight(1f))
-                    Text("$n×", fontWeight = FontWeight.Bold)
+        }
+
+        val counts = breaks.groupBy { it.title }.map { it.key to it.value.size }.sortedByDescending { it.second }
+        if (counts.isNotEmpty()) {
+            GlassCard {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    IconBadge("📊")
+                    Text("By rule", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+                val top = counts.first().second.coerceAtLeast(1)
+                counts.take(8).forEach { (title, n) ->
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row {
+                            Text(title, modifier = Modifier.weight(1f))
+                            Text("$n×", fontWeight = FontWeight.Bold)
+                        }
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(10.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
+                        ) {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth(n.toFloat() / top)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(50))
+                                    .background(Glass.accent)
+                            )
+                        }
+                    }
                 }
             }
         }
 
         val grouped = breaks.groupBy { it.date }.toSortedMap(compareByDescending { it })
         if (grouped.isEmpty()) {
-            SectionCard(title = null) { Text("No rule breaks in this period. Keep it up!") }
+            GlassCard { Text("No rule breaks in this period. Keep it up!") }
         }
         grouped.forEach { (date, list) ->
-            SectionCard(title = T.day(T.parse(date))) {
+            GlassCard {
+                Text(T.day(T.parse(date)), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 list.forEach { b ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {

@@ -45,6 +45,9 @@ class Repository(db: AppDatabase) {
 
     suspend fun deleteBreak(b: RuleBreak) = dao.deleteBreak(b)
 
+    suspend fun saveMeditation(m: MeditationSession) { dao.insertMeditation(m) }
+    suspend fun deleteMeditation(m: MeditationSession) { dao.deleteMeditation(m) }
+
     suspend fun addFood(f: CustomFood) = dao.insertFood(f)
     suspend fun deleteFood(f: CustomFood) = dao.deleteFood(f)
 

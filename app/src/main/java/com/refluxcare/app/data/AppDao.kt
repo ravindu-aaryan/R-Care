@@ -140,4 +140,20 @@ abstract class AppDao {
 
     @Delete
     abstract suspend fun deleteFood(f: CustomFood)
+
+    // ---- Meditations ----
+    @Query("SELECT * FROM meditations WHERE date = :date ORDER BY startTime")
+    abstract fun meditationsFor(date: String): Flow<List<MeditationSession>>
+
+    @Query("SELECT * FROM meditations WHERE date BETWEEN :from AND :to ORDER BY startTime DESC")
+    abstract fun meditationsBetween(from: String, to: String): Flow<List<MeditationSession>>
+
+    @Query("SELECT * FROM meditations ORDER BY startTime")
+    abstract suspend fun allMeditations(): List<MeditationSession>
+
+    @Insert
+    abstract suspend fun insertMeditation(m: MeditationSession): Long
+
+    @Delete
+    abstract suspend fun deleteMeditation(m: MeditationSession)
 }

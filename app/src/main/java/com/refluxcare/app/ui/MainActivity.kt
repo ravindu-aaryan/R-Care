@@ -4,7 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -70,10 +77,19 @@ fun AppRoot() {
 
     val go: (String) -> Unit = { target -> nav.navigate(target) }
 
+    AppBackground {
     Scaffold(
+        containerColor = Color.Transparent,
         bottomBar = {
             if (tabs.any { it.route == route }) {
-                NavigationBar {
+                val barShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                NavigationBar(
+                    modifier = Modifier
+                        .clip(barShape)
+                        .border(1.dp, Glass.border, barShape),
+                    containerColor = Glass.navBar,
+                    tonalElevation = 0.dp
+                ) {
                     tabs.forEach { t ->
                         NavigationBarItem(
                             selected = route == t.route,
@@ -85,7 +101,14 @@ fun AppRoot() {
                                 }
                             },
                             icon = { Icon(t.icon, contentDescription = t.label) },
-                            label = { Text(t.label, maxLines = 1) }
+                            label = { Text(t.label, maxLines = 1) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
                 }
@@ -108,5 +131,6 @@ fun AppRoot() {
                 )
             }
         }
+    }
     }
 }

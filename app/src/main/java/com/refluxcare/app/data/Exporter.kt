@@ -13,6 +13,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.time.LocalDate
+import java.util.Locale
 
 /** Exports everything as JSON (full data) and CSV (one row per day, for spreadsheets). */
 object Exporter {
@@ -25,6 +26,7 @@ object Exporter {
         val habits = dao.allHabits()
         val breaks = dao.allBreaks()
         val foods = dao.allCustomFoods()
+        val meditations = dao.allMeditations()
 
         return withContext(Dispatchers.IO) {
             val root = JSONObject()
@@ -70,14 +72,24 @@ object Exporter {
             root.put("customFoods", JSONArray().apply {
                 foods.forEach { put(JSONObject().put("name", it.name).put("mealType", it.mealType).put("note", it.note)) }
             })
+            root.put("meditations", JSONArray().apply {
+                meditations.forEach {
+                    put(JSONObject()
+                        .put("date", it.date).put("time", T.time(it.startTime))
+                        .put("plannedMin", it.plannedMin).put("actualSec", it.actualSec)
+                        .put("minutes", Math.round(it.actualSec / 60.0 * 10) / 10.0)
+                        .put("sound", it.sound).put("completed", it.completed))
+                }
+            })
 
             // Daily CSV
             val allDates = (meals.map { it.date } + sleep.map { it.date } + workouts.map { it.date } +
-                symptoms.map { it.date } + habits.map { it.date } + breaks.map { it.date }).toSortedSet()
+                symptoms.map { it.date } + habits.map { it.date } + breaks.map { it.date } +
+                meditations.map { it.date }).toSortedSet()
             val sleepBy = sleep.associateBy { it.date }
             val symBy = symptoms.associateBy { it.date }
             val csv = StringBuilder()
-            csv.append("date,weekday,bedtime_prev_night,wake_time,sleep_hours,habits_done,habits_total,symptom,night_symptoms,meals,rule_breaks,rules,workouts,walk_steps\n")
+            csv.append("date,weekday,bedtime_prev_night,wake_time,sleep_hours,habits_done,habits_total,symptom,night_symptoms,meals,rule_breaks,rules,workouts,walk_steps,meditation_min\n")
             for (d in allDates) {
                 val s = sleepBy[d]
                 val sym = symBy[d]
@@ -97,7 +109,8 @@ object Exporter {
                     dayBreaks.size.toString(),
                     dayBreaks.joinToString(" | ") { it.title },
                     dayWorkouts.joinToString(" | ") { it.type },
-                    dayWorkouts.sumOf { it.steps }.toString()
+                    dayWorkouts.sumOf { it.steps }.toString(),
+                    "%.1f".format(Locale.US, meditations.filter { it.date == d }.sumOf { it.actualSec } / 60.0)
                 ).joinToString(",") { csvCell(it) }).append('\n')
             }
 
